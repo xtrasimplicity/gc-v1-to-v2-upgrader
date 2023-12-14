@@ -1,0 +1,94 @@
+#!/bin/bash
+set -e
+ACTION="$1"
+PACKAGE_URL=https://raw.githubusercontent.com/xtrasimplicity/gc-v1-to-v2-upgrader/master/deps.zip
+TEMP_DIR=/tmp/gc_upgrade
+GC_DIR=/etc/guardicore
+
+install() {
+  echo "Preparing..."
+  mkdir -p $TEMP_DIR
+  cd $TEMP_DIR
+  wget $PACKAGE_URL
+  unzip deps.zip
+  cp upgrade_v1_to_v2.tar.gz $GC_DIR
+  cp sshpass_1.06-1_amd64.deb $GC_DIR
+
+  echo "Installing dependencies..."
+  cd $GC_DIR
+  tar -xmvf upgrade_v1_to_v2.tar.gz
+  dpkg -i sshpass_1.06-1_amd64.deb
+
+  echo "Prepare ansible..."
+  cat <<EOF >hosts
+ [all]
+
+ [group1]
+ # AGGREGATOR_1_IP
+ # AGGREGATOR_2_IP
+
+ [group1:vars]
+ ansible_ssh_pass= #PASSWORD
+ ansible_sudo_pass= #PASSWORD
+EOF
+  cat <<EOF >host-local
+[all]
+
+[group1]
+127.0.0.1
+
+[group1:vars]
+ansible_sudo_pass= #PASSWORD
+EOF
+
+echo "Make sure to update $GC_DIR/hosts and $GC_DIR/host-local!"
+}
+
+step1() {
+ cd $GC_DIR
+ ANSIBLE_SSH_RETRIES=3 ANSIBLE_SSH_ARGS="-C -o ControlMaster=auto -o ControlPersist=60s -o StrictHostKeyChecking=no" \
+ ansible-playbook upgrade_v1_to_v2/conversion_to_partition_upgrade.yml \
+ -vvv -i hosts --become -e "complete=true" \
+ --user=$(whoami)
+}
+
+local_step1() {
+ cd $GC_DIR
+ ANSIBLE_SSH_RETRIES=3 ansible-playbook upgrade_v1_to_v2/conversion_to_partition_upgrade.yml \
+ -vvv --user=root -i host-local --become --connection=local \
+ -e "local_run=pre_repart"
+}
+
+local_step2() {
+ cd $GC_DIR
+ ANSIBLE_SSH_RETRIES=3 ansible-playbook upgrade_v1_to_v2/conversion_to_partition_upgrade.yml \
+ -vvv --user=root -i host-local --become --connection=local \
+ -e "local_run=post_repart"
+}
+
+local_step3() {
+ ANSIBLE_SSH_RETRIES=3 ansible-playbook upgrade_v1_to_v2/conversion_to_partition_upgrade.yml \
+ -vvv --user=root -i host-local --become --connection=local \
+ -e "local_run=post_mender"
+}
+
+case $ACTION in
+    install)
+      install
+      ;;
+    remote)
+      step1
+      ;;
+    local_1)
+      local_step1
+      ;;
+    local_2)
+      local_step2
+      ;;
+    local_3)
+      local_step3
+      ;;
+*)
+        echo "Valid options: install, remote, local_1, local_2, local_3"
+        ;;
+esac
