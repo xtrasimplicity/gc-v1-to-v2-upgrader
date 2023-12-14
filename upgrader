@@ -20,7 +20,7 @@ install() {
   dpkg -i sshpass_1.06-1_amd64.deb
 
   read -p "Please specify the root password for the aggregator: "
-  root_pass = $REPLY
+  root_pass=$REPLY
 
   echo "Prepare ansible..."
   cat <<EOF >hosts
