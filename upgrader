@@ -73,6 +73,13 @@ local_step3() {
  -e "local_run=post_mender"
 }
 
+tidy() {
+ echo "Tidying up..." 
+ cd $GC_DIR
+ rm -fv hosts host-local sshpass_1.06-1_amd64.deb upgrade_v1_to_v2.tar.gz
+ rm -rfv upgrade_v1_to_v2
+}
+
 case $ACTION in
     install)
       install
@@ -89,7 +96,10 @@ case $ACTION in
     local_3)
       local_step3
       ;;
+     tidy)
+      tidy
+      ;;
 *)
-        echo "Valid options: install, remote, local_1, local_2, local_3"
+        echo "Valid options: install, remote, local_1, local_2, local_3, tidy"
         ;;
 esac
