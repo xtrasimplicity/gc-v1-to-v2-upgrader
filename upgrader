@@ -19,6 +19,9 @@ install() {
   tar -xmvf upgrade_v1_to_v2.tar.gz
   dpkg -i sshpass_1.06-1_amd64.deb
 
+  read -p "Please specify the root password for the aggregator: "
+  root_pass = $REPLY
+
   echo "Prepare ansible..."
   cat <<EOF >hosts
  [all]
@@ -28,8 +31,8 @@ install() {
  # AGGREGATOR_2_IP
 
  [group1:vars]
- ansible_ssh_pass= #PASSWORD
- ansible_sudo_pass= #PASSWORD
+ ansible_ssh_pass=$root_pass
+ ansible_sudo_pass=$root_pass
 EOF
   cat <<EOF >host-local
 [all]
@@ -38,10 +41,11 @@ EOF
 127.0.0.1
 
 [group1:vars]
-ansible_sudo_pass= #PASSWORD
+ansible_sudo_pass=$root_pass
 EOF
 
-echo "Make sure to update $GC_DIR/hosts and $GC_DIR/host-local!"
+echo "Make sure to update $GC_DIR/hosts and $GC_DIR/host-local, as desired!"
+echo "Also, make sure to run '$0 tidy' after you've finished, to clear up temporary files (and credentials!)"
 }
 
 step1() {
