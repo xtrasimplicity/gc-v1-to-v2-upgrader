@@ -67,6 +67,7 @@ local_step2() {
 }
 
 local_step3() {
+ cd $GC_DIR
  ANSIBLE_SSH_RETRIES=3 ansible-playbook upgrade_v1_to_v2/conversion_to_partition_upgrade.yml \
  -vvv --user=root -i host-local --become --connection=local \
  -e "local_run=post_mender"
